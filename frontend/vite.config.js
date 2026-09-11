@@ -43,8 +43,6 @@ export default defineConfig({
                   currentDb = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
                 }
 
-                // Assuming we store profiles by user ID or registration number
-                // For this demo, we'll just store a single profile or a map
                 const updatedDb = { ...currentDb, ...newData }
 
                 fs.writeFileSync(dbPath, JSON.stringify(updatedDb, null, 2))
@@ -63,4 +61,13 @@ export default defineConfig({
       }
     }
   ],
+  resolve: {
+    alias: {
+      react: path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-leaflet', 'leaflet'],
+  },
 })
