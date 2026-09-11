@@ -1,0 +1,279 @@
+@import "tailwindcss";
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+/* We use standard CSS variables to avoid the 'unknown at-rule' error */
+:root {
+  --color-slate-950: #020617;
+  --color-blue-600: #2563eb;
+  --color-purple-600: #9333ea;
+}
+
+@keyframes blob {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background-color: var(--color-slate-950);
+  color: white;
+  overflow-x: hidden;
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+button:hover {
+  border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+:root {
+  --bg-dark: #0a0b1e;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --neon-blue: #00d4ff;
+  --neon-pink: #ff007f;
+  --glass-surface: rgba(20, 22, 40, 0.6);
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  font-family: 'Inter', system-ui, sans-serif;
+  color: white;
+  overflow: hidden;
+  /* Prevent scroll on mobile */
+}
+
+/* The Glassmorphism Utility */
+.glass-panel {
+  background: var(--glass-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Neon Glow Animation */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
+  }
+
+  100% {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+}
+
+:root {
+  --bg-dark: #050511;
+  /* Deeper, richer black-blue */
+  --neon-blue: #00d4ff;
+  --neon-pink: #ff007f;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  font-family: 'Inter', system-ui, sans-serif;
+  color: white;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* THE MAGIC: Ambient Background Blobs */
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  /* This makes it look like a glow */
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.orb-1 {
+  top: -10%;
+  left: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--neon-blue), transparent 70%);
+  animation: float 10s infinite ease-in-out;
+}
+
+.orb-2 {
+  bottom: -10%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--neon-pink), transparent 70%);
+  animation: float 14s infinite ease-in-out reverse;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(30px, 50px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+:root {
+  --bg-dark: #0b0c15;
+  /* Deep Navy Black */
+  --panel-bg: #13141f;
+  /* Slightly lighter for cards */
+  --neon-pink: #ff2a6d;
+  --neon-blue: #05d9e8;
+  --text-main: #ffffff;
+  --text-muted: #6c757d;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  font-family: 'Inter', sans-serif;
+  color: var(--text-main);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* The Dashboard Card Style */
+.dashboard-card {
+  background: var(--panel-bg);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(255, 42, 109, 0.5);
+}
