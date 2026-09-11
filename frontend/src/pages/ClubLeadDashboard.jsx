@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { collection, onSnapshot, addDoc, query, where, getDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../conf/firebase";
 import { useAuth } from "../context/mainContext";
-import { PlusCircle, ClipboardPlus, X, CheckCircle, Users, Radio, Activity, Command, AlertTriangle, Calendar, MapPin, Image as ImageIcon, Clock } from "lucide-react";
+import { PlusCircle, ClipboardPlus, X, CheckCircle, Users, Radio, Activity, Command, AlertTriangle, Calendar, MapPin, Image as ImageIcon, Clock, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const ClubLeadDashboard = () => {
     const { user, userData } = useAuth();
@@ -20,6 +21,11 @@ const ClubLeadDashboard = () => {
     });
     
     const [studentNames, setStudentNames] = useState({});
+
+    // --- RECURRING & QR STATE ---
+    const [recurrence, setRecurrence] = useState("none"); // none, weekly
+    const [recurrenceWeeks, setRecurrenceWeeks] = useState(2); // 2-4 weeks
+    const [showQRFor, setShowQRFor] = useState(null); // holds activityId for QR modal
 
     // --- ASSIGNMENT MODAL STATE ---
     const [isAssigning, setIsAssigning] = useState(false);
@@ -86,19 +92,43 @@ const ClubLeadDashboard = () => {
 
     const handlePostEvent = async (e) => { 
         e.preventDefault(); 
-        await addDoc(collection(db, "activities"), { 
-            community_name: userData.community_name, 
-            event_title: newEvent.title, 
-            description: newEvent.desc,
-            image_url: newEvent.image || "", // Save Image
-            event_date: newEvent.date || "",   // Save Date
-            location: newEvent.location || "Campus", // Save Location
-            posted_by_uid: user.uid, 
-            createdAt: new Date(), 
-            volunteer_list: [] 
-        }); 
+        
+        let dates = [newEvent.date];
+        if (recurrence === "weekly" && newEvent.date) {
+            let baseDate = new Date(newEvent.date);
+            for (let i = 1; i < recurrenceWeeks; i++) {
+                let nextDate = new Date(baseDate);
+                nextDate.setDate(baseDate.getDate() + (7 * i));
+                dates.push(nextDate.toISOString().split('T')[0]); // YYYY-MM-DD
+            }
+        }
+        
+        const parentId = "parent_" + new Date().getTime(); // simple group id
+
+        for (let i = 0; i < dates.length; i++) {
+            let title = newEvent.title;
+            if (dates.length > 1) {
+                title = `${newEvent.title} (Session ${i + 1}/${dates.length})`;
+            }
+            await addDoc(collection(db, "activities"), { 
+                community_name: userData.community_name, 
+                event_title: title, 
+                description: newEvent.desc,
+                image_url: newEvent.image || "", 
+                event_date: dates[i] || "",   
+                location: newEvent.location || "Campus", 
+                posted_by_uid: user.uid, 
+                createdAt: new Date(), 
+                volunteer_list: [],
+                checked_in_users: [],
+                parent_id: parentId
+            }); 
+        }
+
         setShowPostForm(false); 
         setNewEvent({ title: "", desc: "", image: "", date: "", location: "" }); 
+        setRecurrence("none");
+        setRecurrenceWeeks(2);
     };
 
     const submitAssignment = async () => {
@@ -228,6 +258,23 @@ const ClubLeadDashboard = () => {
                                     </div>
                                 </div>
 
+                                {/* Row 3: Recurrence */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-slate-500 uppercase font-bold ml-1">Recurrence</label>
+                                        <select className="w-full bg-[#15172b] p-4 rounded-xl border border-white/10 text-white focus:border-blue-500 outline-none" value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
+                                            <option value="none">One-time Event</option>
+                                            <option value="weekly">Weekly Recurring</option>
+                                        </select>
+                                    </div>
+                                    {recurrence === "weekly" && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs text-slate-500 uppercase font-bold ml-1">Duration (Weeks)</label>
+                                            <input type="number" min="2" max="10" className="w-full bg-[#15172b] p-4 rounded-xl border border-white/10 text-white focus:border-blue-500 outline-none" value={recurrenceWeeks} onChange={(e) => setRecurrenceWeeks(parseInt(e.target.value))} />
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-xs text-slate-500 uppercase font-bold ml-1">Mission Parameters</label>
                                     <textarea className="w-full bg-[#15172b] p-4 rounded-xl border border-white/10 text-white h-32 focus:border-blue-500 outline-none resize-none" placeholder="Detailed instructions..." value={newEvent.desc} onChange={(e) => setNewEvent({...newEvent, desc: e.target.value})} required />
@@ -262,8 +309,11 @@ const ClubLeadDashboard = () => {
                                         {act.event_title}
                                     </h2>
                                     <div className="flex flex-col items-end gap-1">
-                                        <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20 animate-pulse">
+                                        <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20 animate-pulse flex items-center gap-1">
                                             LIVE
+                                            <button onClick={() => setShowQRFor(act)} className="ml-2 hover:text-white transition-colors" title="Show QR Code">
+                                                <QrCode size={14} />
+                                            </button>
                                         </span>
                                         {act.event_date && <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1"><Calendar size={10}/> {act.event_date}</span>}
                                     </div>
@@ -391,9 +441,26 @@ const ClubLeadDashboard = () => {
                                     </button>
                                 </div>
                             </div>
-
-                            {/* Decorative Background Grid */}
-                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                        </div>
+                    </div>
+                )}
+                {/* --- QR CODE MODAL --- */}
+                {showQRFor && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setShowQRFor(null)}>
+                        <div className="bg-[#0b0d21] border border-blue-500/30 w-full max-w-sm p-8 rounded-3xl shadow-[0_0_50px_rgba(37,99,235,0.2)] flex flex-col items-center text-center relative" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => setShowQRFor(null)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={20}/></button>
+                            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">{showQRFor.event_title}</h3>
+                            <p className="text-slate-400 text-sm mb-6">Scan to check-in for this operation</p>
+                            
+                            <div className="bg-white p-4 rounded-xl">
+                                <QRCodeSVG value={showQRFor.id} size={200} />
+                            </div>
+                            
+                            <div className="mt-6 w-full p-4 bg-white/5 border border-white/10 rounded-xl">
+                                <p className="text-sm text-slate-300 font-medium flex items-center justify-center gap-2">
+                                    <Users size={16}/> {showQRFor.checked_in_users?.length || 0} Agents Checked In
+                                </p>
+                            </div>
                         </div>
                     </div>
                 )}
