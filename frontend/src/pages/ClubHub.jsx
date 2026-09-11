@@ -65,15 +65,44 @@ const ClubHub = () => {
         scanner.clear();
         setShowScanner(false);
         try {
-          // Check-in logic: decodedText is activityId
-          const actRef = doc(db, "activities", decodedText);
+          // Check-in logic: decodedText is campusconnect.app/checkin/{activityId}/{token}
+          if (!decodedText.includes('/checkin/')) throw new Error("Invalid QR code format");
+          const parts = decodedText.split('/checkin/')[1].split('/');
+          const activityId = parts[0];
+          const token = parts[1];
+
+          // 1. Verify Token
+          const checkinDoc = await getDoc(doc(db, "checkins", activityId));
+          if (!checkinDoc.exists() || checkinDoc.data().token !== token) {
+            throw new Error("Invalid or expired check-in token.");
+          }
+
+          // 2. Check Expiry
+          if (checkinDoc.data().expiresAt.toDate() < new Date()) {
+            throw new Error("This check-in token has expired.");
+          }
+
+          // 3. Check Volunteer List
+          const actRef = doc(db, "activities", activityId);
+          const actDoc = await getDoc(actRef);
+          if (!actDoc.exists()) throw new Error("Activity not found.");
+          
+          const actData = actDoc.data();
+          if (!actData.volunteer_list?.includes(user.uid)) {
+            throw new Error("You must volunteer for this operation first before checking in.");
+          }
+          if (actData.checked_in_users?.includes(user.uid)) {
+            throw new Error("You have already checked in.");
+          }
+
+          // 4. Update
           await updateDoc(actRef, {
             checked_in_users: arrayUnion(user.uid)
           });
-          alert("Checked in successfully!");
+          alert("Secure Check-In Successful! ✅");
         } catch (e) {
           console.error(e);
-          alert("Invalid QR Code or Event.");
+          alert(e.message || "Invalid QR Code or Event.");
         }
       }, (err) => {
         // ignore errors during scanning

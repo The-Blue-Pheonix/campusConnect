@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, query, where, getDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, query, where, getDoc, doc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "../conf/firebase";
 import { useAuth } from "../context/mainContext";
 import { PlusCircle, ClipboardPlus, X, CheckCircle, Users, Radio, Activity, Command, AlertTriangle, Calendar, MapPin, Image as ImageIcon, Clock, QrCode } from "lucide-react";
@@ -22,10 +22,10 @@ const ClubLeadDashboard = () => {
     
     const [studentNames, setStudentNames] = useState({});
 
-    // --- RECURRING & QR STATE ---
     const [recurrence, setRecurrence] = useState("none"); // none, weekly
     const [recurrenceWeeks, setRecurrenceWeeks] = useState(2); // 2-4 weeks
     const [showQRFor, setShowQRFor] = useState(null); // holds activityId for QR modal
+    const [qrToken, setQrToken] = useState(null); // holds the generated token
 
     // --- ASSIGNMENT MODAL STATE ---
     const [isAssigning, setIsAssigning] = useState(false);
@@ -129,6 +129,23 @@ const ClubLeadDashboard = () => {
         setNewEvent({ title: "", desc: "", image: "", date: "", location: "" }); 
         setRecurrence("none");
         setRecurrenceWeeks(2);
+    };
+
+    const handleGenerateQR = async (act) => {
+        const token = Math.random().toString(36).substring(2, 15);
+        const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours validity
+        try {
+            await setDoc(doc(db, "checkins", act.id), {
+                token,
+                expiresAt,
+                createdBy: user.uid
+            });
+            setQrToken(token);
+            setShowQRFor(act);
+        } catch (error) {
+            console.error("Error generating QR:", error);
+            alert("Failed to generate secure QR check-in.");
+        }
     };
 
     const submitAssignment = async () => {
@@ -311,7 +328,7 @@ const ClubLeadDashboard = () => {
                                     <div className="flex flex-col items-end gap-1">
                                         <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20 animate-pulse flex items-center gap-1">
                                             LIVE
-                                            <button onClick={() => setShowQRFor(act)} className="ml-2 hover:text-white transition-colors" title="Show QR Code">
+                                            <button onClick={() => handleGenerateQR(act)} className="ml-2 hover:text-white transition-colors" title="Generate Check-in QR">
                                                 <QrCode size={14} />
                                             </button>
                                         </span>
@@ -333,27 +350,31 @@ const ClubLeadDashboard = () => {
                                             act.volunteer_list.map((vUID) => {
                                                 // --- FILTER TASKS FOR THIS STUDENT IN THIS ACTIVITY ---
                                                 const studentTasks = allAssignments.filter(t => t.studentId === vUID && t.activityId === act.id);
+                                                const isCheckedIn = act.checked_in_users?.includes(vUID);
 
                                                 return (
                                                     <div key={vUID} className="p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                                                         <div className="flex items-center justify-between mb-2">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold shadow-lg">
+                                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-lg ${isCheckedIn ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white' : 'bg-gradient-to-br from-indigo-500 to-purple-600'}`}>
                                                                     {studentNames[vUID]?.charAt(0) || "R"}
                                                                 </div>
-                                                                <span className="text-sm font-bold text-slate-200">
+                                                                <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
                                                                     {studentNames[vUID] || "Loading..."}
+                                                                    {isCheckedIn ? <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded border border-green-500/20">VERIFIED</span> : <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">AWAY</span>}
                                                                 </span>
                                                             </div>
                                                             
                                                             <button 
                                                                 onClick={() => {
+                                                                    if (!isCheckedIn) return;
                                                                     setSelectedStudent(vUID);
                                                                     setSelectedActivityId(act.id);
                                                                     setTaskTitle("");
                                                                     setIsAssigning(true);
                                                                 }}
-                                                                className="bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border border-blue-500/20 hover:border-blue-600 flex items-center gap-1"
+                                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border flex items-center gap-1 ${isCheckedIn ? 'bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-500/20 hover:border-blue-600 cursor-pointer' : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-50'}`}
+                                                                title={isCheckedIn ? "Assign Task" : "Student must check in first"}
                                                             >
                                                                 <ClipboardPlus size={12} /> Assign
                                                             </button>
@@ -453,7 +474,7 @@ const ClubLeadDashboard = () => {
                             <p className="text-slate-400 text-sm mb-6">Scan to check-in for this operation</p>
                             
                             <div className="bg-white p-4 rounded-xl">
-                                <QRCodeSVG value={showQRFor.id} size={200} />
+                                <QRCodeSVG value={`campusconnect.app/checkin/${showQRFor.id}/${qrToken}`} size={200} />
                             </div>
                             
                             <div className="mt-6 w-full p-4 bg-white/5 border border-white/10 rounded-xl">
