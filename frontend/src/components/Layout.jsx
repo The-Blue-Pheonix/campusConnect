@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
-import { Search, MessageSquare, Users, Settings, LogOut, Hexagon, User, Menu } from "lucide-react";
+import { Search, MessageSquare, Users, Settings, LogOut, Hexagon, User, Menu, MapPin } from "lucide-react";
 import { useAuth } from "../context/mainContext";
 import NotificationPopup from "./NotificationsPopup";
 import BrandLogo from "./BrandLogo";
@@ -116,6 +116,7 @@ const Layout = () => {
             <NavItem to="/community" icon={<Search size={20} />} label="Community" isOpen={isSidebarOpen} />
             <NavItem to="/chat" icon={<MessageSquare size={20} />} label="Chat Feed" isOpen={isSidebarOpen} />
             <NavItem to="/find" icon={<Users size={20} />} label="Find People" isOpen={isSidebarOpen} />
+            <NavItem to="/location" icon={<MapPin size={20} />} label="Kaha hai tu" isOpen={isSidebarOpen} />
             <NavItem to="/requests" icon={<Users size={20} />} label="Friend requests" isOpen={isSidebarOpen} />
             <NavItem to="/profile" icon={<Settings size={20} />} label="Settings" isOpen={isSidebarOpen} />
           </nav>

@@ -242,3 +242,91 @@ export const reportUser = async (reporterUid, reportedUid, reason) => {
     throw error;
   }
 };
+
+/**
+ * Updates the live location of the current user.
+ * @param {string} uid - The user's UID.
+ * @param {number} lat - Latitude.
+ * @param {number} lng - Longitude.
+ * @param {boolean} isSharing - Whether the user is actively sharing their location.
+ */
+export const updateLiveLocation = async (uid, lat, lng, isSharing) => {
+  if (!uid) return;
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, {
+      location: {
+        lat,
+        lng,
+        isSharing,
+        updatedAt: serverTimestamp(),
+      }
+    });
+  } catch (error) {
+    console.error("Error updating live location:", error);
+    throw error;
+  }
+};
+
+/**
+ * Subscribes to the live locations of the user's friends.
+ * @param {string} uid - The user's UID.
+ * @param {Function} callback - Callback function receiving the list of friends with locations.
+ * @returns {Promise<Function>} A function to unsubscribe from all listeners.
+ */
+export const subscribeToFriendsLocations = async (uid, callback) => {
+  if (!uid) return () => {};
+
+  try {
+    // 1. Fetch the user's accepted friends
+    const reqRef = collection(db, "friend_requests");
+    const [snapTo, snapFrom] = await Promise.all([
+      getDocs(query(reqRef, where("to", "==", uid), where("status", "==", "accepted"))),
+      getDocs(query(reqRef, where("from", "==", uid), where("status", "==", "accepted")))
+    ]);
+
+    const friendUids = new Set();
+    snapTo.forEach(doc => friendUids.add(doc.data().from));
+    snapFrom.forEach(doc => friendUids.add(doc.data().to));
+
+    if (friendUids.size === 0) {
+      callback([]);
+      return () => {};
+    }
+
+    // 2. Subscribe to the user documents of those friends
+    const unsubscribes = [];
+    let friendsData = {};
+
+    friendUids.forEach((friendUid) => {
+      const friendRef = doc(db, "users", friendUid);
+      const unsub = onSnapshot(friendRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.location && data.location.isSharing) {
+            friendsData[friendUid] = {
+              uid: friendUid,
+              name: data.name || "Friend",
+              photoUrl: data.photoUrl || data.photoURL || "",
+              location: data.location,
+            };
+          } else {
+            // Remove if they stopped sharing
+            delete friendsData[friendUid];
+          }
+          callback(Object.values(friendsData));
+        }
+      });
+      unsubscribes.push(unsub);
+    });
+
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  } catch (error) {
+    console.error("Error subscribing to friends locations:", error);
+    callback([]);
+    return () => {};
+  }
+};
+
