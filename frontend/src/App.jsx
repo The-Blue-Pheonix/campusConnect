@@ -15,6 +15,7 @@ import LoadingScreen from "./components/Loading";
 import { useState, useEffect } from "react";
 import Community from "./pages/Community";
 import LandingPage from "./pages/LandingPage";
+import LocationTracking from "./pages/LocationTracking";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading: authLoading } = useAuth(); 
@@ -67,6 +68,7 @@ function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/requests" element={<Requests />} />
+          <Route path="/location" element={<LocationTracking />} />
           <Route path="/settings" element={<Placeholder title="Profile Settings" subtitle="Manage your campus ID" />} />
           <Route path="/feedback" element={<Feedback />} />
         </Route>
