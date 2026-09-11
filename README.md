@@ -8,9 +8,9 @@
 [![Firebase](https://img.shields.io/badge/Firebase-v12.7-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-000000?style=flat&logo=three.js&logoColor=white)](https://threejs.org/)
 
-Campus Connect is **not just another student directory** — it is a high-performance, real-time, campus-exclusive social ecosystem engineered for university students to discover peers, collaborate on research, participate in campus events, and communicate securely.
+Campus Connect is **not just another student directory** — it is a high-performance, real-time, campus-exclusive social ecosystem engineered for university students to discover peers, collaborate on research, participate in campus events, check in via QR tokens, and communicate securely.
 
-Designed with modern glassmorphic aesthetics, WebGL shader lighting, real-time Firestore listeners, and a strict two-tier verification model.
+Designed with modern glassmorphic aesthetics, WebGL shader lighting, real-time Firestore listeners, dynamic location density mapping, and a strict two-tier verification model.
 
 ---
 
@@ -19,7 +19,8 @@ Designed with modern glassmorphic aesthetics, WebGL shader lighting, real-time F
 - [🏗️ System Architecture & Flowcharts](#-system-architecture--flowcharts)
   - [1. High-Level Architecture](#1-high-level-architecture)
   - [2. Gatekeeper Authentication & Kill-Switch Flow](#2-gatekeeper-authentication--kill-switch-flow)
-  - [3. Real-Time Messaging & Ephemeral Chat Flow](#3-real-time-messaging--ephemeral-chat-flow)
+  - [3. QR-Code Attendance Verification Flow](#3-qr-code-attendance-verification-flow)
+  - [4. Real-Time Messaging & Ephemeral Chat Flow](#4-real-time-messaging--ephemeral-chat-flow)
 - [🗄️ Database Schema & Data Models](#-database-schema--data-models)
 - [🛠️ Tech Stack](#️-tech-stack)
 - [🔐 Security & Access Control](#-security--access-control)
@@ -33,28 +34,37 @@ Designed with modern glassmorphic aesthetics, WebGL shader lighting, real-time F
 
 ## ✨ Key Features
 
-- 🛡️ **Campus Gatekeeper Verification**  
-  Restricted access strictly bound to verified university registration numbers in `valid_students`. Prevents unauthorized external sign-ups.
+- 🛡️ **Campus Gatekeeper & ID Card Verification**  
+  Restricted access strictly bound to verified university registration numbers in `valid_students` combined with Student ID Card photo verification to prevent unauthorized external sign-ups.
 
 - ⚡ **Real-Time Admin Session Kill Switch**  
   Integrated Firestore listener instantly revokes active student sessions and logs out users in real time if access status is modified by campus administration.
+
+- 📱 **QR-Code Physical Event Check-In Engine**  
+  Club leaders generate time-boxed check-in QR codes (`checkins/{activityId}`). Volunteers scan the code via live camera scanner to convert tentative sign-ups into **verified event attendance**.
+
+- 🏆 **Community Volunteer Leaderboard & Duty Reviews**  
+  Real-time leaderboard ranking student volunteers by verified completed operations (`completedOps`). Includes mission assignment, task review submission, and lead approval workflows.
+
+- 🗺️ **Adaptive Location Density Mapping**  
+  Real-time interactive map (`LocationTracking.jsx`) with dynamic auto-centering and zoom calculations aligned towards active student density on campus.
+
+- 🎓 **Seniority Filtering (Junior vs Senior)**  
+  Smart student directory filtering by batch, department, and academic seniority (Senior vs Junior levels).
+
+- 🏫 **College-Wise Campus Ecosystem Scoping**  
+  Multi-campus ecosystem isolation enabling students to experience their distinct college culture while enabling discovery.
 
 - 🃏 **Interactive Discovery Stack**  
   Swipeable card stack supporting dual discovery modes:
   - **Social Mode**: Swipe to discover peers filtered by department, batch, and interest tags.
   - **Volunteer Mode**: Explore and volunteer for campus activities, community events, and drives.
 
-- 💬 **Real-Time Direct & Group Chat Engine**  
-  Instant 1-on-1 private messaging and group chat rooms built on Cloud Firestore listeners with online presence indicator tracking (`isOnline` & `lastSeen`).
+- 💬 **Real-Time Direct & Ephemeral Group Chat Engine**  
+  Instant 1-on-1 private messaging and temporary group chat rooms with **1-hour automated expiration logic** and online presence indicators (`isOnline` & `lastSeen`).
 
-- ⏳ **Ephemeral Chat Rooms**  
-  Temporary group chat rooms with an automated **1-hour expiration logic** designed for rapid project syncs and pop-up campus meetups.
-
-- 🏆 **Club Hub & Leader Dashboard**  
-  Role-based dashboard (`community_leader` vs `student`) allowing leaders to post activities, volunteer opportunities, and manage club announcements.
-
-- 🌐 **Community Wall & Study Space**  
-  Public campus feed where students share learning milestones, research projects, and find collaborators.
+- 🚩 **Campus Moderation & Reporting Shield**  
+  Comprehensive safety suite allowing users to block or report toxic behavior, persisting directly into Firestore `reports` and `blocks` collections.
 
 - 🌌 **Futuristic Glassmorphic WebGL UI**  
   Ultra-dark futuristic design featuring **OGL / Three.js** light ray shaders, responsive drawer navigation, custom cursors, and liquid transitions.
@@ -74,17 +84,19 @@ graph TD
         Router --> Context["Auth & Main Context API"]
         Context --> UIComponents["Pages & Glassmorphic UI Components"]
         UIComponents --> Shaders["WebGL LightRays / Three.js Engine"]
+        UIComponents --> QRScanner["HTML5 QR Camera Scanner"]
     end
 
     subgraph FirebaseInfra ["Firebase Cloud Infrastructure"]
         Context -->|"Auth API"| FBAuth["Firebase Authentication"]
         Context -->|"Real-Time Listeners & CRUD"| Firestore[("Cloud Firestore NoSQL")]
-        UIComponents -->|"Asset Storage"| FBStorage["Firebase Storage"]
+        UIComponents -->|"Asset & ID Card Storage"| FBStorage["Firebase Storage"]
     end
 
     subgraph SecurityLayer ["Security & Access Layer"]
         Firestore --> SecurityRules["Firestore Rules v2"]
         SecurityRules -->|"Validation"| ValidStudents[("valid_students Collection")]
+        SecurityRules -->|"QR Verification"| CheckinsCol[("checkins Collection")]
     end
 ```
 
@@ -102,8 +114,8 @@ sequenceDiagram
     participant FBAuth as Firebase Auth
     participant Admin as Admin / Listener
 
-    Student->>AuthUI: Enters Email, Password & RegNo
-    AuthUI->>Service: loginStudent(email, password, regNo)
+    Student->>AuthUI: Enters Email, Password, RegNo & Uploads ID Card
+    AuthUI->>Service: registerStudent(email, password, regNo, idCard)
     Service->>Firestore: Check valid_students record for RegNo
     
     alt RegNo Not Found or Linked to Different Email
@@ -111,10 +123,10 @@ sequenceDiagram
         Service-->>AuthUI: Throw Registration Error
         AuthUI-->>Student: Display Error Notification
     else RegNo Validated
-        Service->>FBAuth: signInWithEmailAndPassword()
+        Service->>FBAuth: createUserWithEmailAndPassword()
         FBAuth-->>Service: Auth Tokens & User Credential
         Service->>Firestore: Update valid_students: is_registered = true
-        Service->>Firestore: Update user profile: isOnline = true
+        Service->>Firestore: Create user profile with ID Card & initial status
         Service-->>AuthUI: Auth Success
         AuthUI-->>Student: Redirect to /discover
     end
@@ -128,7 +140,39 @@ sequenceDiagram
 
 ---
 
-### 3. Real-Time Messaging & Ephemeral Chat Flow
+### 3. QR-Code Attendance Verification Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Leader as Club Leader
+    actor Volunteer as Student Volunteer
+    participant Dashboard as ClubLeadDashboard
+    participant Discovery as Discovery Page
+    participant Firestore as Cloud Firestore
+
+    Leader->>Dashboard: Click "Generate Check-in QR"
+    Dashboard->>Firestore: Create checkins/{activityId} (token, expiresAt)
+    Dashboard-->>Leader: Render visual QR Code (token URL)
+    
+    Volunteer->>Discovery: Open "Scan Check-In QR" Modal
+    Volunteer->>Discovery: Scan QR Code via Live Camera
+    Discovery->>Firestore: Read checkins/{activityId} & validate token
+
+    alt Token Expired or Invalid
+        Firestore-->>Discovery: Token Invalid / Expired
+        Discovery-->>Volunteer: Show Error: "Check-in expired or invalid"
+    else Token Validated
+        Firestore->>Firestore: Add Volunteer UID to activities.verified_attendees
+        Firestore->>Firestore: Increment User completedOps count (+1)
+        Firestore-->>Discovery: Check-in Verified!
+        Discovery-->>Volunteer: Display "Attendance Verified (+1 Op)" Badge
+    end
+```
+
+---
+
+### 4. Real-Time Messaging & Ephemeral Chat Flow
 
 ```mermaid
 flowchart LR
@@ -179,28 +223,50 @@ Campus Connect operates under a **two-tier security model** in Cloud Firestore:
   "regNo": "241001001218",
   "branch": "CSE",
   "batch": "2024-28",
+  "seniority": "Senior",
+  "college": "Institute of Engineering & Management",
   "bio": "Coder / Innovator / Troubleshooter",
   "interests": ["Coding", "AI-ML", "Physics"],
   "role": "student",
   "photoUrl": "https://...",
+  "idCardUrl": "https://...",
+  "completedOps": 5,
   "isOnline": true,
   "lastSeen": "Timestamp",
+  "location": {
+    "lat": 22.5726,
+    "lng": 88.4337
+  },
   "updatedAt": "Timestamp"
 }
 ```
 
-### 3. `friend_requests` (Connection State)
+### 3. `checkins` (QR Code Attendance Tokens)
 ```json
 {
-  "requestId": "uidA_uidB",
-  "from": "uidA",
-  "to": "uidB",
-  "status": "pending",
-  "createdAt": "Timestamp"
+  "token": "a8f9c2d1-e4b5-4a6c-9d8e-1f2a3b4c5d6e",
+  "expiresAt": "Timestamp (Event end time or +2 hours)",
+  "createdBy": "lead_uid",
+  "activityId": "activity_document_id"
 }
 ```
 
-### 4. `chats` (Direct & Group Conversations)
+### 4. `activities` (Club & Community Events)
+```json
+{
+  "activityId": "auto_generated_id",
+  "event_title": "Campus AI Hackathon",
+  "community_name": "Coding Club",
+  "description": "Building next-gen AI tools",
+  "event_date": "2026-10-15",
+  "image_url": "https://...",
+  "volunteer_list": ["uidA", "uidB"],
+  "verified_attendees": ["uidA"],
+  "created_by": "lead_uid"
+}
+```
+
+### 5. `chats` (Direct & Group Conversations)
 ```json
 {
   "chatId": "uidA_uidB",
@@ -226,16 +292,22 @@ Campus Connect operates under a **two-tier security model** in Cloud Firestore:
 }
 ```
 
-### 5. `activities` (Club & Community Events)
+### 6. `reports` & `blocks` (Safety & Moderation)
 ```json
+// reports/{reportId}
 {
-  "activityId": "auto_generated_id",
-  "event_title": "Campus AI Hackathon",
-  "community_name": "Coding Club",
-  "description": "Building next-gen AI tools",
-  "event_date": "2026-10-15",
-  "image_url": "https://...",
-  "volunteer_list": ["uidA", "uidB"]
+  "reporterId": "uidA",
+  "reportedUserId": "uidB",
+  "reason": "Harassment / Spam",
+  "details": "Inappropriate messages in group chat",
+  "createdAt": "Timestamp"
+}
+
+// blocks/{blockId}
+{
+  "blockerId": "uidA",
+  "blockedUserId": "uidB",
+  "createdAt": "Timestamp"
 }
 ```
 
@@ -252,6 +324,7 @@ Campus Connect operates under a **two-tier security model** in Cloud Firestore:
 - 🎨 **Tailwind CSS v4** — Utility-first engine with high-performance CSS `@theme` variables.
 - 💫 **Framer Motion 12** — Smooth layout transitions and interactive card animations.
 - 🎨 **Lucide React** — Crisp icon library.
+- 📷 **HTML5-QRCode** — Web-based live camera scanner for QR verification.
 
 ### Shaders & WebGL Graphics
 - 🧊 **Three.js** — 3D graphics rendering engine.
@@ -271,7 +344,9 @@ Firestore enforcement is governed by `firestore.rules` (rules version 2):
 
 - **Campus Gatekeeper**: `valid_students` collection readable by clients for auth validation.
 - **Profile Ownership**: `users/{userId}` documents are only writable by the authenticated owner (`request.auth.uid == userId`).
+- **QR Attendance Verification**: `checkins/{activityId}` documents readable by authenticated volunteers; `activities` verified attendee updates allowed for signed-in users.
 - **Private Messaging Shield**: Chat threads (`chats/{chatId}`) and nested messages (`messages/{messageId}`) are accessible **only** to users explicitly included in the `resource.data.users` array.
+- **Moderation Safety**: `reports` and `blocks` collections writeable by reporting users.
 
 ---
 
@@ -336,7 +411,7 @@ pip install -r requirements.txt
 
 ```
 campusConnect/
-├── firestore.rules          # Security rules for Cloud Firestore
+├── firestore.rules          # Security rules for Cloud Firestore (v2)
 ├── db.json                  # Local seed / mock database reference
 ├── requirements.txt         # Python dependencies for admin tools
 ├── LICENSE                  # MIT License
@@ -362,28 +437,30 @@ campusConnect/
         │   ├── Loading.jsx          # Futuristic loading screen
         │   ├── NotificationsPopup.jsx # Real-time alert notifications
         │   ├── BrandLogo.jsx        # Animated brand logo component
+        │   ├── LightPillar.jsx      # Dynamic visual effect backdrop pillar
         │   ├── Cards/
         │   │   ├── CardStack.jsx    # Swipeable card container logic
         │   │   ├── ProfileCard.jsx  # Student profile card rendering
         │   │   └── VolunteerCard.jsx# Activity/Volunteer card rendering
         │   ├── auth/
         │   │   ├── LoginUI.jsx      # Login interface
-        │   │   └── SignUpUI.jsx     # Registration interface
+        │   │   └── SignUpUI.jsx     # Registration interface with ID Card upload
         │   └── effects/
         │       ├── LightRays.jsx    # WebGL GPU Light Rays shader canvas
         │       └── LightRays.css    # Shader layout styling
         └── pages/
-            ├── LandingPage.jsx      # Hero landing page
+            ├── LandingPage.jsx      # Hero landing page with multi-college ecosystem picker
             ├── Login.jsx            # Auth entry page
-            ├── Discovery.jsx        # Swipe card discovery (Social / Volunteer)
-            ├── Community.jsx        # Campus feed & post sharing
-            ├── Chat.jsx             # Real-time chat application interface
-            ├── Find.jsx             # Advanced student search & directory filter
+            ├── Discovery.jsx        # Swipe card discovery & live QR Scanner
+            ├── Community.jsx        # Campus feed & Community Club Groups tab
+            ├── Chat.jsx             # Real-time direct & group chat interface
+            ├── Find.jsx             # Student search with Seniority & Department filters
+            ├── LocationTracking.jsx # Adaptive campus location map with user clustering
             ├── Requests.jsx         # Connection / Friend request management
-            ├── Profile.jsx          # Student profile view
+            ├── Profile.jsx          # Student profile view & verified ops stats
             ├── EditProfile.jsx      # Profile editor
             ├── ClubHub.jsx          # Campus clubs catalog
-            ├── ClubLeadDashboard.jsx# Club leader management dashboard
+            ├── ClubLeadDashboard.jsx# Leader dashboard with QR Check-In Token Generator
             └── Feedback.jsx         # Campus user feedback submission
 ```
 
@@ -395,9 +472,13 @@ campusConnect/
 - [x] **Real-Time Admin Kill-Switch**
 - [x] **Student Profile Management**
 - [x] **Friend Request Handshake Engine**
-- [x] **Direct & Group Real-Time Chat**
-- [x] **Ephemeral Chat Room Logic**
+- [x] **Direct & Ephemeral Group Chat**
 - [x] **WebGL Light Rays Background Shaders**
+- [x] **QR-Code Physical Event Check-In System**
+- [x] **Community Club Groups & Leaderboard**
+- [x] **Adaptive Location Density Mapping**
+- [x] **Seniority (Junior / Senior) Filtering**
+- [x] **ID Card Verification Onboarding**
 - [ ] 🤖 **AI Matchmaker**: ML-driven student pairing based on project goals & interests.
 - [ ] 📱 **Mobile Native**: React Native mobile app build for iOS & Android.
 - [ ] 🔒 **End-to-End Encrypted Chat**: Client-side payload encryption for private messages.
@@ -425,5 +506,3 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 <p align="center">
   Built with ❤️ for students, by students. If you find Campus Connect helpful, give it a ⭐ on GitHub!
 </p>
-
-
