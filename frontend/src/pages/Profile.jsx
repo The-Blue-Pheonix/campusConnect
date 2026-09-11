@@ -227,6 +227,20 @@ const Profile = () => {
               </div>
             )}
 
+            {/* ID Verification Status Badge */}
+            {displayProfile.idVerificationStatus === "verified" && (
+              <div className="mt-2 inline-flex items-center gap-1.5 bg-green-500/20 border border-green-500/40 text-green-300 px-3 py-1 rounded-full">
+                <ShieldCheck size={13} />
+                <span className="text-[10px] font-black uppercase tracking-wider">ID Verified</span>
+              </div>
+            )}
+            {displayProfile.idVerificationStatus === "pending" && (
+              <div className="mt-2 inline-flex items-center gap-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 px-3 py-1 rounded-full">
+                <AlertTriangle size={13} />
+                <span className="text-[10px] font-black uppercase tracking-wider">ID Verification Pending</span>
+              </div>
+            )}
+
             {/* Club Leader Badge */}
             {(displayProfile.role === "community_leader" ||
               userData?.role === "community_leader") && (

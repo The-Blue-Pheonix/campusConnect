@@ -100,6 +100,26 @@ const LocationTracking = () => {
     }
   };
 
+  // Auto-center map on user's real location on load
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (mapRef.current) {
+            mapRef.current.flyTo([pos.coords.latitude, pos.coords.longitude], 14, { animate: true, duration: 1.5 });
+          }
+        },
+        () => {
+          // Fallback: Kolkata area
+          if (mapRef.current) {
+            mapRef.current.flyTo([22.5726, 88.3639], 12, { animate: false });
+          }
+        },
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
+    }
+  }, []);
+
   return (
     <div className="flex flex-col h-full w-full p-6 text-white relative">
       <div className="flex items-center justify-between mb-6 z-10">
@@ -131,8 +151,8 @@ const LocationTracking = () => {
 
       <div className="flex-1 rounded-2xl overflow-hidden border border-gray-700 shadow-2xl relative z-0 min-h-[500px]">
         <MapContainer 
-          center={[20.5937, 78.9629]} // Default to India roughly
-          zoom={5} 
+          center={[22.5726, 88.3639]}
+          zoom={12} 
           style={{ height: "100%", width: "100%", background: "#1a1a2e" }}
           ref={mapRef}
         >

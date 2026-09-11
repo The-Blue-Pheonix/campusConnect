@@ -1,18 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
-import { Search, MessageSquare, Users, Settings, LogOut, Hexagon, User, Menu, MapPin } from "lucide-react";
+import { Search, MessageSquare, Users, Settings, LogOut, User, Menu, MapPin, CalendarDays, Hexagon } from "lucide-react";
 import { useAuth } from "../context/mainContext";
 import NotificationPopup from "./NotificationsPopup";
 import BrandLogo from "./BrandLogo";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../conf/firebase";
 
 const Layout = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  // State for Sidebar & Mobile Check
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isMenuHovered, setIsMenuHovered] = useState(false);
+  const [activities, setActivities] = useState([]);
+
+  // Fetch activities for mini calendar
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "activities"), (snap) => {
+      setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
 
   // 1. MOBILE RESPONSIVENESS LISTENER
   useEffect(() => {
@@ -113,13 +123,65 @@ const Layout = () => {
         }}>
           <nav style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
             <NavItem to="/discover" icon={<Search size={20} />} label="Discover" isOpen={isSidebarOpen} />
-            <NavItem to="/community" icon={<Search size={20} />} label="Community" isOpen={isSidebarOpen} />
+            <NavItem to="/community" icon={<Users size={20} />} label="Community" isOpen={isSidebarOpen} />
+            <NavItem to="/club-hub" icon={<Hexagon size={20} />} label="Club Hub" isOpen={isSidebarOpen} />
             <NavItem to="/chat" icon={<MessageSquare size={20} />} label="Chat Feed" isOpen={isSidebarOpen} />
             <NavItem to="/find" icon={<Users size={20} />} label="Find People" isOpen={isSidebarOpen} />
             <NavItem to="/location" icon={<MapPin size={20} />} label="Kaha hai tu" isOpen={isSidebarOpen} />
             <NavItem to="/requests" icon={<Users size={20} />} label="Friend requests" isOpen={isSidebarOpen} />
             <NavItem to="/profile" icon={<Settings size={20} />} label="Settings" isOpen={isSidebarOpen} />
           </nav>
+
+          {/* MINI EVENT CALENDAR */}
+          {isSidebarOpen && (() => {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOffset = new Date(year, month, 1).getDay();
+            const monthLabel = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            const eventDays = new Set(
+              activities
+                .filter(a => a.event_date?.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`))
+                .map(a => parseInt(a.event_date.split('-')[2]))
+            );
+            const cells = [];
+            for (let i = 0; i < firstDayOffset; i++) cells.push(<div key={`e${i}`} />);
+            for (let d = 1; d <= daysInMonth; d++) {
+              const isToday = d === today.getDate();
+              const hasEvent = eventDays.has(d);
+              const dayActs = activities.filter(a => a.event_date === `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+              const tooltip = dayActs.map(a => a.event_title).join(', ');
+              cells.push(
+                <div key={d} title={tooltip || undefined}
+                  style={{
+                    width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '10px', fontWeight: isToday ? '900' : hasEvent ? '700' : '400',
+                    background: isToday ? '#05d9e8' : hasEvent ? 'rgba(5,217,232,0.15)' : 'transparent',
+                    color: isToday ? '#000' : hasEvent ? '#05d9e8' : '#555',
+                    border: hasEvent && !isToday ? '1px solid rgba(5,217,232,0.3)' : '1px solid transparent',
+                    cursor: hasEvent ? 'pointer' : 'default',
+                    position: 'relative'
+                  }}
+                >{d}</div>
+              );
+            }
+            return (
+              <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '12px', opacity: isSidebarOpen ? 1 : 0, transition: 'opacity 0.3s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <CalendarDays size={12} color='#05d9e8' />
+                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#05d9e8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{monthLabel}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                  {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ textAlign: 'center', fontSize: '9px', color: '#333', fontWeight: '700', paddingBottom: '4px' }}>{d}</div>)}
+                  {cells}
+                </div>
+                {eventDays.size > 0 && (
+                  <div style={{ marginTop: '8px', fontSize: '9px', color: '#05d9e8', fontWeight: '600' }}>● {eventDays.size} event{eventDays.size > 1 ? 's' : ''} this month</div>
+                )}
+              </div>
+            );
+          })()}
 
           <button
             onClick={handleLogout}

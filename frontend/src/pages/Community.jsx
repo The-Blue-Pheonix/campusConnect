@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../conf/firebase";
 import { useAuth } from "../context/mainContext";
-import { ShieldCheck, Zap, CheckCircle, Clock, Trophy, Target, AlertCircle, Loader, XCircle, RotateCcw, Check } from "lucide-react";
+import { ShieldCheck, Zap, CheckCircle, Clock, Trophy, Target, AlertCircle, Loader, XCircle, RotateCcw, Check, Crown } from "lucide-react";
 
 const Community = () => {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState("missions"); // 'missions' | 'clubs'
     const [enrolledEvents, setEnrolledEvents] = useState([]);
     const [myTasks, setMyTasks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [communityData, setCommunityData] = useState({});
 
     useEffect(() => {
         if (!user) return;
@@ -28,7 +30,45 @@ const Community = () => {
                 const tasks = taskSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                 setMyTasks(tasks);
 
-            } catch (error) { console.error(error); } 
+                // Fetch Community Groups
+                const allAssignments = (await getDocs(query(collection(db, "assignments"), where("status", "==", "completed")))).docs;
+                const communityCount = {}; // { communityName: { uid: count } }
+                allAssignments.forEach(d => {
+                    const { studentId, communityName } = d.data();
+                    if (!studentId || !communityName) return;
+                    if (!communityCount[communityName]) communityCount[communityName] = {};
+                    communityCount[communityName][studentId] = (communityCount[communityName][studentId] || 0) + 1;
+                });
+
+                const usersSnap = await getDocs(collection(db, "users"));
+                const communities = {};
+                usersSnap.docs.forEach(d => {
+                    const data = d.data();
+                    if (data.community_name && data.role === "community_leader") {
+                        if (!communities[data.community_name]) communities[data.community_name] = { leader: null, members: [] };
+                        communities[data.community_name].leader = { uid: d.id, name: data.name || data.Name || "Leader", photo: data.photoUrl || "" };
+                    }
+                });
+
+                const actSnap = await getDocs(collection(db, "activities"));
+                for (const aDoc of actSnap.docs) {
+                    const { community_name, volunteer_list } = aDoc.data();
+                    if (!community_name || !volunteer_list?.length) continue;
+                    if (!communities[community_name]) communities[community_name] = { leader: null, members: [] };
+                    for (const uid of volunteer_list) {
+                        if (!communities[community_name].members.find(m => m.uid === uid)) {
+                            const uDoc = await getDoc(doc(db, "users", uid));
+                            if (uDoc.exists()) {
+                                const ud = uDoc.data();
+                                communities[community_name].members.push({ uid, name: ud.name || ud.Name || "Member", photo: ud.photoUrl || "", completedOps: communityCount[community_name]?.[uid] || 0 });
+                            }
+                        }
+                    }
+                    communities[community_name].members.sort((a, b) => b.completedOps - a.completedOps);
+                }
+                setCommunityData(communities);
+
+            } catch (error) { console.error(error); }
             finally { setLoading(false); }
         };
         fetchData();
@@ -66,7 +106,7 @@ const Community = () => {
             <div className="max-w-6xl mx-auto relative z-10">
                 
                 {/* --- HEADER SECTION --- */}
-                <div className="mb-12">
+                <div className="mb-8">
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2" 
                         style={{ textShadow: "0 0 40px rgba(5, 217, 232, 0.3)" }}>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#05d9e8] to-[#007aff]">Command</span> 
@@ -75,8 +115,22 @@ const Community = () => {
                     <p className="text-slate-400 font-medium text-lg">Current Rank: <span className="text-[#05d9e8] font-bold">{rank}</span></p>
                 </div>
 
-                {/* --- STATS HUD --- */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+                {/* TAB SWITCHER */}
+                <div className="flex gap-2 mb-8 p-1 bg-white/5 rounded-2xl border border-white/10 w-fit">
+                    {[{ id: 'missions', label: '⚡ My Missions' }, { id: 'clubs', label: '👥 Club Groups' }].map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                                activeTab === tab.id
+                                    ? 'bg-gradient-to-r from-[#05d9e8] to-blue-600 text-black shadow-[0_0_15px_rgba(5,217,232,0.3)]'
+                                    : 'text-slate-400 hover:text-white'
+                            }`}>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* STATS - always shown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     <StatCard 
                         icon={<Trophy size={28} className="text-yellow-400" />} 
                         label="Verified Completes" 
@@ -100,7 +154,8 @@ const Community = () => {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* ---- MISSIONS TAB ---- */}
+                {activeTab === 'missions' && (<div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     {/* --- LEFT COLUMN: MISSIONS (DUTIES) --- */}
                     <div className="lg:col-span-7 space-y-6">
@@ -183,10 +238,9 @@ const Community = () => {
                         )}
                     </div>
 
-                    {/* --- RIGHT COLUMN: ENROLLMENTS (BADGES) --- */}
+                    {/* ---- MISSIONS TAB: RIGHT COLUMN (Enrollments) ---- */}
                     <div className="lg:col-span-5 space-y-6">
                         <SectionHeader title="Event Enrollments" icon={<ShieldCheck className="text-[#05d9e8]" />} />
-                        
                         {enrolledEvents.length === 0 ? (
                             <EmptyState text="You haven't volunteered for any events yet. Check the Discovery feed!" />
                         ) : (
@@ -209,9 +263,75 @@ const Community = () => {
                         )}
                     </div>
                 </div>
+                )}
+
+                {/* ---- CLUB GROUPS TAB ---- */}
+                {activeTab === 'clubs' && (
+                    <div className="space-y-8">
+                        {Object.keys(communityData).length === 0 ? (
+                            <EmptyState text="No community data found yet. Join activities to see clubs here!" />
+                        ) : Object.entries(communityData).map(([name, { leader, members }]) => {
+                            const communityLeaderboard = members.filter(m => m.completedOps > 0);
+                            return (
+                                <div key={name} className="bg-white/[0.02] border border-white/10 rounded-3xl overflow-hidden">
+                                    <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 px-6 py-5 border-b border-white/10 flex items-center justify-between">
+                                        <h2 className="text-xl font-black text-white uppercase tracking-tight">{name}</h2>
+                                        <span className="text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded-full font-bold uppercase">{members.length} Members</span>
+                                    </div>
+                                    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div>
+                                            {leader && (
+                                                <div className="mb-4">
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Club Leader</p>
+                                                    <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-2xl">
+                                                        <div className="relative">
+                                                            {leader.photo ? <img src={leader.photo} className="w-10 h-10 rounded-xl object-cover border border-yellow-500/30" /> : <div className="w-10 h-10 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center font-black text-sm">{leader.name.charAt(0)}</div>}
+                                                            <Crown size={12} className="absolute -top-2 -right-2 text-yellow-400" />
+                                                        </div>
+                                                        <div><p className="text-white font-bold text-sm">{leader.name}</p><p className="text-yellow-400 text-[10px] font-bold uppercase">Community Leader</p></div>
+                                                        <ShieldCheck size={18} className="text-yellow-400 ml-auto" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Members</p>
+                                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {members.length > 0 ? members.map((m, i) => (
+                                                    <div key={m.uid} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                                                        <span className="text-[10px] text-slate-500 font-bold w-4">{i + 1}</span>
+                                                        {m.photo ? <img src={m.photo} className="w-7 h-7 rounded-lg object-cover" /> : <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">{m.name.charAt(0)}</div>}
+                                                        <span className="text-sm text-slate-300 flex-1 truncate">{m.name}</span>
+                                                        {m.completedOps > 0 && <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-1.5 py-0.5 rounded">{m.completedOps} Ops</span>}
+                                                    </div>
+                                                )) : <p className="text-slate-600 text-xs italic">No volunteers yet.</p>}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Trophy size={10} className="text-yellow-400" /> Leaderboard</p>
+                                            {communityLeaderboard.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {communityLeaderboard.slice(0,5).map((l, index) => (
+                                                        <div key={l.uid} className="flex items-center gap-3 bg-black/40 p-3 rounded-xl border border-white/5">
+                                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${index === 0 ? 'bg-yellow-500 text-black' : index === 1 ? 'bg-slate-300 text-black' : index === 2 ? 'bg-amber-700 text-white' : 'bg-white/10 text-slate-400'}`}>{index + 1}</div>
+                                                            {l.photo ? <img src={l.photo} className="w-7 h-7 rounded-full object-cover" /> : <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">{l.name.charAt(0)}</div>}
+                                                            <span className="text-sm text-slate-200 flex-1 truncate">{l.name}</span>
+                                                            <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-1 rounded border border-blue-500/20">{l.completedOps} Ops</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : <p className="text-slate-600 text-xs italic">Complete assignments to appear here.</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
             </div>
         </div>
     );
+
+
 };
 
 // --- SUB-COMPONENTS ---
