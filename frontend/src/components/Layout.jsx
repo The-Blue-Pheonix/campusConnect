@@ -62,7 +62,7 @@ const Layout = () => {
             <Menu size={24} />
           </button>
 
-          <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Link to="/discover" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             {/* <Hexagon fill="#ff2a6d" stroke="none" size={32} /> */}
             <img src="/blue-ph.png" alt="" className="w-10"/>
             <div style={{ lineHeight: "1" }}>
@@ -111,7 +111,7 @@ const Layout = () => {
           boxShadow: isMobile && isSidebarOpen ? "5px 0 15px rgba(0,0,0,0.5)" : "none"
         }}>
           <nav style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
-            <NavItem to="/" icon={<Search size={20} />} label="Discover" isOpen={isSidebarOpen} />
+            <NavItem to="/discover" icon={<Search size={20} />} label="Discover" isOpen={isSidebarOpen} />
             <NavItem to="/community" icon={<Search size={20} />} label="Community" isOpen={isSidebarOpen} />
             <NavItem to="/chat" icon={<MessageSquare size={20} />} label="Chat Feed" isOpen={isSidebarOpen} />
             <NavItem to="/find" icon={<Users size={20} />} label="Find People" isOpen={isSidebarOpen} />
