@@ -67,6 +67,11 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    // ---------------- QR CHECKINS ----------------
+    match /checkins/{activityId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // ---------------- USER REPORTS ----------------
     match /reports/{reportId} {
       allow create: if isAuthenticated() 

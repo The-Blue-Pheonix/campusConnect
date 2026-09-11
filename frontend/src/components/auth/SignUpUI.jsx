@@ -1,7 +1,19 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const SignUpUI = ({ regNo, setRegNo, email, setEmail, password, setPassword, error, isSubmitting, handleSubmit, toggleView, isMobile }) => {
+const SignUpUI = ({ regNo, setRegNo, email, setEmail, password, setPassword, error, isSubmitting, handleSubmit, toggleView, isMobile, onIdCardSelected }) => {
+  const [idCardFile, setIdCardFile] = useState(null);
+  const [idCardPreview, setIdCardPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleIdCardChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setIdCardFile(file);
+    setIdCardPreview(URL.createObjectURL(file));
+    if (onIdCardSelected) onIdCardSelected(file);
+  };
+
   // Memoize handlers to prevent unnecessary re-renders
   const handleRegNoChange = useCallback((e) => setRegNo(e.target.value), [setRegNo]);
   const handleEmailChange = useCallback((e) => setEmail(e.target.value), [setEmail]);
@@ -68,6 +80,36 @@ const SignUpUI = ({ regNo, setRegNo, email, setEmail, password, setPassword, err
               required
               disabled={isSubmitting}
             />
+          </div>
+          
+          {/* ID CARD VERIFICATION */}
+          <div className="mt-1">
+            <p className="text-slate-500 text-[11px] uppercase font-bold tracking-widest mb-2">ID Card Verification</p>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`w-full rounded-2xl border-2 border-dashed cursor-pointer transition-all p-4 flex flex-col items-center justify-center gap-2 
+                ${idCardPreview ? 'border-purple-500/50 bg-purple-500/10' : 'border-white/10 bg-black/20 hover:border-purple-500/30 hover:bg-purple-500/5'}`}
+            >
+              {idCardPreview ? (
+                <>
+                  <img src={idCardPreview} alt="ID Preview" className="w-full max-h-28 object-contain rounded-lg" />
+                  <span className="text-[11px] text-purple-400 font-semibold">✓ ID Card Uploaded</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl">🪪</div>
+                  <p className="text-xs text-slate-400 font-medium">Tap to upload Student ID Card</p>
+                  <p className="text-[10px] text-slate-600">JPG, PNG — Required for verification</p>
+                </>
+              )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleIdCardChange} />
+            {idCardFile && (
+              <div className="mt-2 flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 px-3 py-2 rounded-xl">
+                <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wide">⏳ Pending Verification</span>
+                <span className="text-[10px] text-slate-500">— Will be reviewed by admin</span>
+              </div>
+            )}
           </div>
           
           <motion.button

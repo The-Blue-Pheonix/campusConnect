@@ -144,7 +144,11 @@ const ClubLeadDashboard = () => {
             setShowQRFor(act);
         } catch (error) {
             console.error("Error generating QR:", error);
-            alert("Failed to generate secure QR check-in.");
+            if (error.code === 'permission-denied') {
+                alert("PERMISSION DENIED: You need to update your Firebase Security Rules to allow writes to the 'checkins' collection. Check the walkthrough for details.");
+            } else {
+                alert("Failed to generate secure QR check-in: " + error.message);
+            }
         }
     };
 

@@ -19,9 +19,10 @@ const Discovery = () => {
 
     const [selectedBatch, setSelectedBatch] = useState(null);
     const [selectedBranch, setSelectedBranch] = useState(null);
+    const [selectedYearGroup, setSelectedYearGroup] = useState(null); // 'senior' | 'junior' | null
     const [availableBatches, setAvailableBatches] = useState([]);
     const [availableBranches, setAvailableBranches] = useState([]);
-    const [showSidebar, setShowSidebar] = useState(false); 
+    const [showSidebar, setShowSidebar] = useState(false);
 
     const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
     const VOLUNTEER_ICON = "https://cdn-icons-png.flaticon.com/512/10699/10699392.png"; 
@@ -139,8 +140,18 @@ const Discovery = () => {
 
     const handleSwipeReject = (item) => { console.log(`Skipped ${item.name}`); };
 
+    // Senior: batch <= currentYear - 2 (3rd year and above)
+    // Junior: batch > currentYear - 2 (1st/2nd year)
+    const currentYear = new Date().getFullYear();
+    const seniorCutoff = currentYear - 2;
     const filteredItems = viewMode === "social" 
-        ? users.filter(u => (!selectedBatch || u.batch === selectedBatch) && (!selectedBranch || u.branch === selectedBranch))
+        ? users.filter(u => {
+            if (selectedBranch && u.branch !== selectedBranch) return false;
+            if (selectedBatch && u.batch !== selectedBatch) return false;
+            if (selectedYearGroup === 'senior') return parseInt(u.batch) <= seniorCutoff;
+            if (selectedYearGroup === 'junior') return parseInt(u.batch) > seniorCutoff;
+            return true;
+          })
         : activities;
 
     return (
@@ -221,11 +232,29 @@ const Discovery = () => {
                 <div style={{ width: "350px", display: "flex", flexDirection: "column", gap: "20px" }}>
                     <div className="dashboard-card" style={{ padding: "15px" }}>
                         <h3 style={{ color: "white", fontSize: "14px", marginBottom: "10px" }}>Active Filters</h3>
-                        <select onChange={(e) => setSelectedBranch(e.target.value)} className="w-full bg-[#111] text-white p-2 rounded-lg mb-2">
+                        
+                        {/* Year Group Filter */}
+                        <p style={{ color: "#aaa", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Year Group</p>
+                        <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+                            {[{ label: "All", value: null }, { label: "🎓 Senior", value: "senior" }, { label: "🌱 Junior", value: "junior" }].map(opt => (
+                                <button key={String(opt.value)} onClick={() => setSelectedYearGroup(opt.value)}
+                                    style={{
+                                        flex: 1, padding: "6px 4px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "11px", fontWeight: "bold",
+                                        background: selectedYearGroup === opt.value ? (opt.value === 'senior' ? '#5227FF' : opt.value === 'junior' ? '#05d9e8' : '#333') : 'rgba(255,255,255,0.05)',
+                                        color: selectedYearGroup === opt.value ? 'white' : '#888', transition: "0.2s"
+                                    }}>
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <p style={{ color: "#aaa", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Department</p>
+                        <select onChange={(e) => setSelectedBranch(e.target.value || null)} className="w-full bg-[#111] text-white p-2 rounded-lg mb-2">
                             <option value="">All Branches</option>
                             {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
-                        <select onChange={(e) => setSelectedBatch(e.target.value)} className="w-full bg-[#111] text-white p-2 rounded-lg">
+                        <p style={{ color: "#aaa", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Batch</p>
+                        <select onChange={(e) => setSelectedBatch(e.target.value || null)} className="w-full bg-[#111] text-white p-2 rounded-lg">
                             <option value="">All Batches</option>
                             {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>

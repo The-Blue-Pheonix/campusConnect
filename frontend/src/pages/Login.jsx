@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/mainContext";
 import LoginUI from "../components/auth/LoginUI";
-import SignUpUI from "../components/auth/SignUpUI"; // Import the new Sign Up UI
+import SignUpUI from "../components/auth/SignUpUI";
 import LightPillar from "../components/LightPillar";
+import { storage, db } from "../conf/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, updateDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const Login = () => {
   // 1. Toggle State: true for Login, false for Sign Up
@@ -14,6 +18,7 @@ const Login = () => {
   const [regNo, setRegNo] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idCardFile, setIdCardFile] = useState(null);
 
   const { login, signup } = useAuth();
 
@@ -33,11 +38,27 @@ const Login = () => {
 
     try {
       if (isLoginView) {
-        // Run Login Logic
         await login(email, password, regNo);
       } else {
-        // Run Sign Up Logic
-        await signup(email, password, regNo);
+        const result = await signup(email, password, regNo);
+        // Upload ID card to Firebase Storage after successful signup
+        if (idCardFile) {
+          const currentUser = getAuth().currentUser;
+          if (currentUser) {
+            try {
+              const storageRef = ref(storage, `id_cards/${currentUser.uid}`);
+              await uploadBytes(storageRef, idCardFile);
+              const idCardUrl = await getDownloadURL(storageRef);
+              await updateDoc(doc(db, "users", currentUser.uid), {
+                idCardUrl,
+                idVerificationStatus: "pending"
+              });
+            } catch (uploadErr) {
+              console.error("ID card upload failed:", uploadErr);
+              // Non-blocking: account is still created, just no ID stored
+            }
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -110,8 +131,9 @@ const Login = () => {
               error={error}
               isSubmitting={isSubmitting}
               handleSubmit={handleSubmit}
-              toggleView={toggleView} // Pass toggle function
+              toggleView={toggleView}
               isMobile={isMobile}
+              onIdCardSelected={(file) => setIdCardFile(file)}
             />
           )}
         </div>
