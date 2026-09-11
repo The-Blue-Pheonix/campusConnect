@@ -14,6 +14,7 @@ import Feedback from "./pages/Feedback";
 import LoadingScreen from "./components/Loading";
 import { useState, useEffect } from "react";
 import Community from "./pages/Community";
+import LandingPage from "./pages/LandingPage";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading: authLoading } = useAuth(); 
@@ -44,6 +45,7 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         {/* PUBLIC: Login */}
         <Route path="/login" element={<LoginWrapper />} />
         <Route path="/feedback" element={<Feedback />} />
@@ -55,7 +57,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Discovery />} />
+          <Route path="/discover" element={<Discovery />} />
           <Route path="/club-hub" element={<ClubHub />} />
           <Route path="/club-leader" element={<ClubLeadDashboard />} />
           <Route path="/community" element={<Community />} />
@@ -77,7 +79,7 @@ function App() {
 const LoginWrapper = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/discover" replace />;
   return <Login />;
 };
 
