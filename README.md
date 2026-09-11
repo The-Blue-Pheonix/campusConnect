@@ -67,24 +67,24 @@ Designed with modern glassmorphic aesthetics, WebGL shader lighting, real-time F
 
 ```mermaid
 graph TD
-    User([Student / User Browser]) -->|HTTP / WebGL| Frontend[React + Vite Frontend]
+    User(["Student / User Browser"]) -->|"HTTP / WebGL"| Frontend["React + Vite Frontend"]
     
-    subgraph Frontend Application Layer
-        Frontend --> Router[React Router v6]
-        Router --> Context[Auth & Main Context API]
-        Context --> UIComponents[Pages & Glassmorphic UI Components]
-        UIComponents --> Shaders[WebGL LightRays / Three.js Engine]
+    subgraph FrontendApp ["Frontend Application Layer"]
+        Frontend --> Router["React Router v6"]
+        Router --> Context["Auth & Main Context API"]
+        Context --> UIComponents["Pages & Glassmorphic UI Components"]
+        UIComponents --> Shaders["WebGL LightRays / Three.js Engine"]
     end
 
-    subgraph Firebase Cloud Infrastructure
-        Context -->|Auth API| FBAuth[Firebase Authentication]
-        Context -->|Real-Time Listeners & CRUD| Firestore[(Cloud Firestore NoSQL)]
-        UIComponents -->|Asset Storage| FBStorage[Firebase Storage]
+    subgraph FirebaseInfra ["Firebase Cloud Infrastructure"]
+        Context -->|"Auth API"| FBAuth["Firebase Authentication"]
+        Context -->|"Real-Time Listeners & CRUD"| Firestore[("Cloud Firestore NoSQL")]
+        UIComponents -->|"Asset Storage"| FBStorage["Firebase Storage"]
     end
 
-    subgraph Security & Access Layer
-        Firestore --> SecurityRules[Firestore Rules v2]
-        SecurityRules -->|Validation| ValidStudents[(valid_students Collection)]
+    subgraph SecurityLayer ["Security & Access Layer"]
+        Firestore --> SecurityRules["Firestore Rules v2"]
+        SecurityRules -->|"Validation"| ValidStudents[("valid_students Collection")]
     end
 ```
 
@@ -104,7 +104,7 @@ sequenceDiagram
 
     Student->>AuthUI: Enters Email, Password & RegNo
     AuthUI->>Service: loginStudent(email, password, regNo)
-    Service->>Firestore: Check valid_students/{regNo}
+    Service->>Firestore: Check valid_students record for RegNo
     
     alt RegNo Not Found or Linked to Different Email
         Firestore-->>Service: Invalid / Unauthorized
@@ -113,14 +113,14 @@ sequenceDiagram
     else RegNo Validated
         Service->>FBAuth: signInWithEmailAndPassword()
         FBAuth-->>Service: Auth Tokens & User Credential
-        Service->>Firestore: Update valid_students: { is_registered: true, lastLogin }
-        Service->>Firestore: Update users/{uid}: { isOnline: true }
+        Service->>Firestore: Update valid_students: is_registered = true
+        Service->>Firestore: Update user profile: isOnline = true
         Service-->>AuthUI: Auth Success
         AuthUI-->>Student: Redirect to /discover
     end
 
     note over Student, Firestore: Real-Time Session Kill Switch Listener
-    Admin->>Firestore: Set valid_students/{regNo}.is_registered = false
+    Admin->>Firestore: Set valid_students record is_registered = false
     Firestore-->>Student: Real-time onSnapshot Triggered
     Student->>Student: Display "Session Revoked by Admin!" Banner
     Student->>FBAuth: Trigger automatic logout & Redirect to /login
@@ -132,27 +132,27 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    subgraph Client A [Student A]
-        A1[Select Peer / Group] --> A2[Send Message]
+    subgraph ClientA ["Student A"]
+        A1["Select Peer / Group"] --> A2["Send Message"]
     end
 
-    subgraph Firestore Backend
-        B1[(chats Collection)]
-        B2[(chats/{chatId}/messages Subcollection)]
+    subgraph FirestoreBackend ["Firestore Backend"]
+        B1[("chats Collection")]
+        B2[("chats/chatId/messages Subcollection")]
     end
 
-    subgraph Client B [Student B]
-        C1[Live onSnapshot Listener] --> C2[Render Chat Bubble & Presence]
+    subgraph ClientB ["Student B"]
+        C1["Live onSnapshot Listener"] --> C2["Render Chat Bubble & Presence"]
     end
 
-    subgraph Expiry Worker
-        E1[Check expiresAt Timestamp] -->|If Current Time > expiresAt| E2[Filter / Purge Ephemeral Room]
+    subgraph ExpiryWorker ["Expiry Worker"]
+        E1["Check expiresAt Timestamp"] -->|"If Current Time > expiresAt"| E2["Filter / Purge Ephemeral Room"]
     end
 
-    A2 -->|sendMessage service| B2
-    A2 -->|updateDoc lastMessage| B1
-    B2 -->|Real-Time Push| C1
-    B1 --> Expiry Worker
+    A2 -->|"sendMessage service"| B2
+    A2 -->|"updateDoc lastMessage"| B1
+    B2 -->|"Real-Time Push"| C1
+    B1 --> ExpiryWorker
 ```
 
 ---
