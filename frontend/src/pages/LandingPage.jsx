@@ -524,7 +524,7 @@ const FunnelSection = () => (
 
       <div className="-mt-6 flex justify-center">
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#22D3EE] shadow-[0_0_50px_10px_rgba(139,92,246,0.35)]">
-          <CampusMark size={28} />
+          <BrandLogo size={28} animated={false} />
         </div>
       </div>
     </div>
