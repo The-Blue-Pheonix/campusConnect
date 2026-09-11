@@ -15,6 +15,7 @@ import {
   getDocs,
   orderBy,
   limit,
+  increment,
 } from "firebase/firestore";
 
 const normalizeList = (value) => {
@@ -88,6 +89,7 @@ export const recordProfileView = async (targetUid, viewerData) => {
   if (!targetUid || !viewerData?.uid || targetUid === viewerData.uid) return;
 
   try {
+    // 1. Record detailed view in subcollection
     const viewRef = doc(db, "users", targetUid, "views", viewerData.uid);
     await setDoc(
       viewRef,
@@ -97,6 +99,18 @@ export const recordProfileView = async (targetUid, viewerData) => {
         viewerPhoto: viewerData.photoUrl || viewerData.photoURL || "",
         viewerBranch: viewerData.department || viewerData.branch || viewerData.major || "",
         viewedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // 2. Increment numerical counter on target user document
+    const userRef = doc(db, "users", targetUid);
+    await setDoc(
+      userRef,
+      {
+        stats: {
+          views: increment(1),
+        },
       },
       { merge: true }
     );
@@ -138,6 +152,7 @@ export const subscribeToProfileViews = (userId, callback) => {
  * @param {string} [params.branch] - Branch or department to filter by ("All" or undefined for all branches)
  * @param {Array<string>} [params.skills] - Array of required skill strings
  * @param {string} params.currentUid - The active user's UID to exclude from search results
+ * @param {Array<string>} [params.blockedUsers] - List of blocked user UIDs
  * @returns {Promise<Array<Object>>} Array of matching user profile objects
  */
 export const findPartners = async ({
@@ -148,9 +163,7 @@ export const findPartners = async ({
 }) => {
   try {
     const usersRef = collection(db, "users");
-    let q = query(usersRef);
-
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(usersRef);
     const normalizedSkills = normalizeList(skills).map((skill) =>
       skill.toLowerCase()
     );
@@ -163,8 +176,8 @@ export const findPartners = async ({
 
     if (branch && branch !== "All") {
       results = results.filter((user) => {
-        const userBranch = user.branch || user.department || user.DEPT || "";
-        return userBranch === branch;
+        const userBranch = user.branch || user.department || user.DEPT || user.major || "";
+        return userBranch.toLowerCase() === branch.toLowerCase();
       });
     }
 
@@ -193,9 +206,13 @@ export const blockUser = async (currentUid, blockedUid) => {
   if (!currentUid || !blockedUid) return;
   try {
     const userRef = doc(db, "users", currentUid);
-    await updateDoc(userRef, {
-      blockedUsers: arrayUnion(blockedUid),
-    });
+    await setDoc(
+      userRef,
+      {
+        blockedUsers: arrayUnion(blockedUid),
+      },
+      { merge: true }
+    );
   } catch (error) {
     console.error("Error blocking user:", error);
     throw error;
@@ -225,14 +242,16 @@ export const unblockUser = async (currentUid, blockedUid) => {
  * @param {string} reporterUid - Active user's UID
  * @param {string} reportedUid - Target user's UID being reported
  * @param {string} reason - Detailed text reason for report
+ * @param {string} [category="general"] - Report category
  */
-export const reportUser = async (reporterUid, reportedUid, reason) => {
+export const reportUser = async (reporterUid, reportedUid, reason, category = "general") => {
   if (!reporterUid || !reportedUid || !reason) return;
   try {
     const reportsRef = collection(db, "reports");
     await addDoc(reportsRef, {
       reporterUid,
       reportedUid,
+      category,
       reason: reason.trim(),
       createdAt: serverTimestamp(),
       status: "pending",

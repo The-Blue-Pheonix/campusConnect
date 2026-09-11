@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, X, Camera, Briefcase, Users } from "lucide-react";
+import { Save, X, Camera } from "lucide-react";
 import { useAuth } from "../context/mainContext";
 import { getUserProfile, updateUserProfile } from "../services/profileService";
 
@@ -18,8 +18,8 @@ const EditProfile = () => {
         year: "1st Year",
         batch: "2024",
         branch: "CSE",
-        clubs: "", // Tracked for Club Hub integration
-        skills: "" // Essential for Volunteer tracking
+        clubs: "",
+        skills: ""
     });
 
     useEffect(() => {
@@ -35,14 +35,20 @@ const EditProfile = () => {
                     setFormData({
                         name: profile.name || "",
                         regNo: profile.regNo || "",
-                        photoUrl: profile.photoUrl || "",
+                        photoUrl: profile.photoUrl || profile.photoURL || "",
                         bio: profile.bio || "",
-                        interests: Array.isArray(profile.interests) ? profile.interests.join(", ") : (profile.interests || ""),
+                        interests: Array.isArray(profile.interests) 
+                            ? profile.interests.join(", ") 
+                            : (profile.interests || ""),
                         year: profile.year || "1st Year",
                         batch: profile.batch || "2024",
-                        branch: profile.branch || "CSE",
-                        clubs: profile.clubs || "",
-                        skills: profile.skills || "",
+                        branch: profile.branch || profile.department || "CSE",
+                        clubs: Array.isArray(profile.clubs) 
+                            ? profile.clubs.join(", ") 
+                            : (profile.clubs || ""),
+                        skills: Array.isArray(profile.skills) 
+                            ? profile.skills.join(", ") 
+                            : (profile.skills || ""),
                     });
                 }
             } catch (err) {
@@ -65,12 +71,25 @@ const EditProfile = () => {
         setLoading(true);
 
         try {
-            const interestsArray = formData.interests.split(',').map(i => i.trim()).filter(i => i);
+            // Helper function to safely parse comma-separated text into clean arrays
+            const parseToArray = (input) => {
+                if (Array.isArray(input)) return input;
+                if (typeof input === 'string') {
+                    return input.split(',').map(item => item.trim()).filter(Boolean);
+                }
+                return [];
+            };
 
-            // Payload now includes skills and clubs for volunteer matching
+            const formattedInterests = parseToArray(formData.interests);
+            const formattedSkills = parseToArray(formData.skills);
+            const formattedClubs = parseToArray(formData.clubs);
+
             const updates = {
                 ...formData,
-                interests: interestsArray,
+                department: formData.branch, // Maintained for schema compatibility across discovery/matching services
+                interests: formattedInterests,
+                skills: formattedSkills,
+                clubs: formattedClubs,
                 updatedAt: new Date()
             };
 
@@ -168,14 +187,14 @@ const EditProfile = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 bg-gradient-to-r from-pink-500 to-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 bg-gradient-to-r from-pink-500 to-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <Save size={20} /> SAVE CHANGES
                     </button>
                     <button
                         type="button"
                         onClick={() => navigate("/profile")}
-                        className="px-8 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition"
+                        className="px-8 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition cursor-pointer"
                     >
                         CANCEL
                     </button>
@@ -185,7 +204,6 @@ const EditProfile = () => {
     );
 };
 
-// ... InputField, TextAreaField, SelectField sub-components stay the same as your original code
 const InputField = ({ label, name, value, onChange, placeholder }) => (
     <div className="flex flex-col gap-2">
         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</label>
@@ -195,7 +213,7 @@ const InputField = ({ label, name, value, onChange, placeholder }) => (
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-400 transition"
+            className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-400 transition text-white"
         />
     </div>
 );
@@ -209,7 +227,7 @@ const TextAreaField = ({ label, name, value, onChange, placeholder }) => (
             onChange={onChange}
             placeholder={placeholder}
             rows={3}
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-400 transition resize-none"
+            className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-400 transition text-white resize-none"
         />
     </div>
 );

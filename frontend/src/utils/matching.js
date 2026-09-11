@@ -1,3 +1,6 @@
+/**
+ * Helper to normalize string or array inputs into cleaned, lowercase string arrays.
+ */
 const normalizeList = (value) => {
   if (Array.isArray(value)) {
     return value
@@ -16,7 +19,7 @@ const normalizeList = (value) => {
 };
 
 /**
- * Calculates mutual interest percentage and returns overlapping items.
+ * Calculates mutual interest percentage (Jaccard similarity) and returns overlapping items.
  */
 export const calculateInterestMatch = (
   currentUserInterests = [],
@@ -34,6 +37,7 @@ export const calculateInterestMatch = (
 
   const sharedInterests = [...setA].filter((interest) => setB.has(interest));
   const unionSet = new Set([...setA, ...setB]);
+
   const score = unionSet.size
     ? Math.round((sharedInterests.length / unionSet.size) * 100)
     : 0;
@@ -46,7 +50,13 @@ export const calculateInterestMatch = (
   };
 };
 
-export const calculateSkillOverlap = (currentUserSkills = [], targetUserSkills = []) => {
+/**
+ * Calculates skill overlap percentage against the current user's requested skills.
+ */
+export const calculateSkillOverlap = (
+  currentUserSkills = [],
+  targetUserSkills = []
+) => {
   const normalizedCurrent = normalizeList(currentUserSkills);
   const normalizedTarget = normalizeList(targetUserSkills);
 
@@ -56,6 +66,7 @@ export const calculateSkillOverlap = (currentUserSkills = [], targetUserSkills =
 
   const setA = new Set(normalizedCurrent);
   const setB = new Set(normalizedTarget);
+
   const sharedSkills = [...setA].filter((skill) => setB.has(skill));
 
   return {

@@ -34,22 +34,31 @@ const Discovery = () => {
         };
         window.addEventListener("resize", handleResize);
 
-        // --- REAL TIME LISTENER (Updated for Image/Date) ---
+        // --- REAL TIME LISTENER (Updated for Image/Date & Interests/Skills/Blocked Filtering) ---
         const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+            const blockedList = userData?.blockedUsers || [];
+
             const userList = snap.docs.map(d => {
                 const data = d.data();
                 const rawPhoto = data.photoURL || data.photoUrl;
                 return {
                     uid: d.id,
                     name: data.Name || data.name || "Unknown Student",
-                    branch: data.branch || data.DEPT || "",
+                    branch: data.branch || data.DEPT || data.department || data.major || "",
                     batch: data.batch || "",
                     bio: data.BIO || data.bio || "",
                     role: data.role || "student", 
                     regNo: data.regNo || "",     
                     photoUrl: (rawPhoto && rawPhoto.trim() !== "") ? rawPhoto : DEFAULT_AVATAR, 
+                    interests: data.interests || [],
+                    skills: data.skills || [],
+                    blockedUsers: data.blockedUsers || [],
                 };
-            }).filter(u => u.uid !== authUser?.uid);
+            })
+            .filter(u => u.uid !== authUser?.uid)
+            .filter(u => !blockedList.includes(u.uid))
+            .filter(u => !(u.blockedUsers || []).includes(authUser?.uid));
+
             setUsers(userList);
             setLoading(false);
             
@@ -89,7 +98,13 @@ const Discovery = () => {
             });
             setActivities(activityList);
         });
-    }, [authUser]);
+
+        return () => {
+            unsubUsers();
+            unsubActivities();
+            window.removeEventListener("resize", handleResize);
+        };
+    }, [authUser, userData]);
 
     const showNotification = (msg, type) => {
         setNotification({ msg, type });
