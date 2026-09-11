@@ -64,6 +64,7 @@ function App() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/find" element={<Find />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/requests" element={<Requests />} />
           <Route path="/settings" element={<Placeholder title="Profile Settings" subtitle="Manage your campus ID" />} />
