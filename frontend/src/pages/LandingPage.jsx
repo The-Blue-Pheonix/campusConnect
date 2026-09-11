@@ -29,6 +29,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/mainContext";
+import BrandLogo from "../components/BrandLogo";
 
 /*
   Fonts: assumes "Inter" at weights 400/600/800/900. Add to index.html <head>:
@@ -46,15 +47,6 @@ import { useAuth } from "../context/mainContext";
   stray full-height sibling (e.g. a leftover Three.js canvas container)
   that isn't collapsing when this component mounts.
 */
-
-// ---------- shared bits ----------
-
-const CampusMark = ({ size = 26 }) => (
-  <svg width={size} height={size} viewBox="0 0 26 26" aria-hidden="true">
-    <circle cx="10" cy="10" r="8" fill="#8B5CF6" />
-    <circle cx="17" cy="16" r="8" fill="#22D3EE" fillOpacity="0.85" />
-  </svg>
-);
 
 const GlowOrb = ({ className }) => (
   <div
@@ -116,7 +108,7 @@ const NavBar = ({ user }) => {
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <CampusMark />
+          <BrandLogo size={28} animated={false} />
           <span className="text-lg font-extrabold tracking-tight">
             Campus Connect
           </span>
@@ -718,6 +710,7 @@ const LandingPage = () => {
   const { user } = useAuth();
   const prefersReducedMotion = useReducedMotion();
   const [openFAQ, setOpenFAQ] = useState(0);
+  const [showIntro, setShowIntro] = useState(true);
 
   const rawX = useMotionValue(0);
   const rawY = useMotionValue(0);
@@ -731,8 +724,52 @@ const LandingPage = () => {
     rawY.set(e.clientY - rect.top);
   };
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowIntro(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#05050A] font-[Inter,sans-serif] text-[#F5F4FF]">
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-[#05050A]"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.18),transparent_35%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.12),transparent_30%)]" />
+            <motion.div
+              initial={{ scale: 0.82, y: 18, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="relative flex flex-col items-center gap-6 px-6 text-center"
+            >
+              <div className="rounded-[2rem] border border-white/10 bg-white/5 px-8 py-10 shadow-[0_30px_100px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+                <BrandLogo size={176} animated />
+                <p className="mt-6 text-xs font-semibold uppercase tracking-[0.45em] text-[#8B81AD]">
+                  Welcome to Campus Connect
+                </p>
+                <h1 className="mt-2 text-3xl font-black tracking-[0.22em] text-white sm:text-4xl">
+                  CAMPUS CONNECT
+                </h1>
+              </div>
+
+              <div className="w-48 overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className="h-1.5 rounded-full bg-gradient-to-r from-[#8B5CF6] via-[#22D3EE] to-[#FF4FD8]"
+                  initial={{ x: "-40%" }}
+                  animate={{ x: "140%" }}
+                  transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <NavBar user={user} />
 
       <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
@@ -760,6 +797,23 @@ const LandingPage = () => {
           )}
 
           <section className="relative">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.05 }}
+              className="mb-5 inline-flex items-center gap-3 rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+            >
+              <BrandLogo size={54} animated />
+              <div className="text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#8B81AD]">
+                  Campus Connect
+                </p>
+                <p className="text-sm font-semibold text-white">
+                  Verified people. Real campus moments.
+                </p>
+              </div>
+            </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1090,7 +1144,7 @@ const LandingPage = () => {
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2.5">
-                <CampusMark size={22} />
+                <BrandLogo size={26} animated={false} />
                 <span className="text-base font-extrabold">Campus Connect</span>
               </div>
               <p className="mt-3 max-w-xs text-sm text-[#8B81AD]">

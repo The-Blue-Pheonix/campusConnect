@@ -3,6 +3,7 @@ import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
 import { Search, MessageSquare, Users, Settings, LogOut, Hexagon, User, Menu } from "lucide-react";
 import { useAuth } from "../context/mainContext";
 import NotificationPopup from "./NotificationsPopup";
+import BrandLogo from "./BrandLogo";
 
 const Layout = () => {
   const { logout } = useAuth();
@@ -64,7 +65,7 @@ const Layout = () => {
 
           <Link to="/discover" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             {/* <Hexagon fill="#ff2a6d" stroke="none" size={32} /> */}
-            <img src="/blue-ph.png" alt="" className="w-10"/>
+            <BrandLogo size={42} animated={false} />
             <div style={{ lineHeight: "1" }}>
               <div style={{ fontWeight: "800", fontSize: "20px", letterSpacing: "1px", color: "white" }}>CAMPUS</div>
               <div style={{ fontWeight: "400", fontSize: "20px", color: "#05d9e8", letterSpacing: "2px" }}>CONNECT</div>

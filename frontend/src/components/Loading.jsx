@@ -1,96 +1,44 @@
 import React from "react";
+import { motion } from "framer-motion";
+import BrandLogo from "./BrandLogo";
 
 const LoadingScreen = () => {
   return (
-    <div style={{
-      height: "100vh",
-      width: "100vw",
-      background: "#05060f", // Dark background
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      position: "fixed",
-      top: 0,
-      left: 0,
-      zIndex: 99999,
-    }}>
-      {/* Animation Styles */}
-      <style>
-        {`
-          @keyframes pulse-glow {
-            0% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(5, 217, 232, 0)); opacity: 1; }
-            50% { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(5, 217, 232, 0.4)); opacity: 0.9; }
-            100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(5, 217, 232, 0)); opacity: 1; }
-          }
-          @keyframes loading-slide {
-            0% { left: -50%; }
-            100% { left: 100%; }
-          }
-          .logo-animate {
-            animation: pulse-glow 2s infinite ease-in-out;
-          }
-        `}
-      </style>
+    <div className="fixed inset-0 z-[99999] flex h-screen w-screen items-center justify-center overflow-hidden bg-[#05060f] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.16),transparent_36%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.12),transparent_28%)]" />
 
-      {/* Logo Container */}
-      <div className="logo-animate" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "25px" }}>
-        
-        <img 
-          src="/blue-ph.png" 
-          alt="Campus Connect" 
-          style={{
-            width: "150px",  
-            height: "150px", 
-            objectFit: "contain"
-          }} 
-        />
+      <motion.div
+        className="relative flex flex-col items-center gap-7 px-6 text-center"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="rounded-[2rem] border border-white/10 bg-white/5 px-8 py-10 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+          <BrandLogo size={170} animated />
+          <motion.div
+            className="mt-6 space-y-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.45 }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-[#8B81AD]">
+              Starting up
+            </p>
+            <h1 className="text-3xl font-black tracking-[0.25em] text-white">
+              CAMPUS CONNECT
+            </h1>
+          </motion.div>
+        </div>
 
-        {/* <div style={{ textAlign: "center" }}>
-          <h1 style={{ 
-            color: "white", 
-            fontSize: "24px", 
-            fontWeight: "800", 
-            letterSpacing: "4px",
-            margin: 0,
-            textTransform: "uppercase" 
-          }}>
-            Campus
-          </h1>
-          <h2 style={{ 
-            color: "#05d9e8", 
-            fontSize: "14px", 
-            fontWeight: "600", 
-            letterSpacing: "6px",
-            marginTop: "5px",
-            textTransform: "uppercase" 
-          }}>
-            Connect
-          </h2>
-        </div> */}
-
-      </div>
-
-      {/* Loading Bar at bottom */}
-      <div style={{
-        marginTop: "50px",
-        width: "150px",
-        height: "4px",
-        background: "rgba(255,255,255,0.1)",
-        borderRadius: "10px",
-        overflow: "hidden",
-        position: "relative"
-      }}>
-        <div style={{
-          width: "50%",
-          height: "100%",
-          background: "linear-gradient(90deg, #05d9e8, #ff2a6d)",
-          position: "absolute",
-          borderRadius: "10px",
-          animation: "loading-slide 1.5s infinite"
-        }} />
-      </div>
-
+        <div className="w-44 overflow-hidden rounded-full bg-white/10">
+          <motion.div
+            className="h-1.5 rounded-full bg-gradient-to-r from-[#8B5CF6] via-[#22D3EE] to-[#FF4FD8]"
+            initial={{ x: "-35%" }}
+            animate={{ x: "135%" }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </div>
+      </motion.div>
     </div>
   );
 };
