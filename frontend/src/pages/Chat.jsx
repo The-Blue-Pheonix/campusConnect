@@ -296,11 +296,12 @@ const Chat = () => {
     <div style={{
       display: isMobile ? "flex" : "grid",
       gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 350px) 1fr",
-      gap: "20px",
-      height: "calc(100vh - 120px)",
+      gap: isMobile ? "0" : "16px",
+      height: isMobile ? "calc(100dvh - 120px)" : "calc(100vh - 76px)",
       width: "100%",
       overflow: "hidden",
-      padding: isMobile ? "0" : "0"
+      padding: "0",
+      boxSizing: "border-box",
     }}>
 
       {/* LEFT: Sidebar */}
