@@ -287,7 +287,88 @@ const Layout = () => {
 
       {/* ── MOBILE BOTTOM NAV BAR ── */}
       {isMobile && (
-        <MobileBottomNav onLogout={handleLogout} />
+        <>
+          <MobileFloatingActions />
+          <MobileBottomNav onLogout={handleLogout} />
+        </>
+      )}
+    </div>
+  );
+};
+
+/* ─── MOBILE FLOATING ACTION BUTTONS ─── */
+const MobileFloatingActions = () => {
+  const location = useLocation();
+
+  const isLocationPage = location.pathname === "/location";
+  const isClubHubPage = location.pathname === "/club-hub";
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: "74px",
+        right: "12px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "10px",
+        zIndex: 65,
+        pointerEvents: "none",
+      }}
+    >
+      {!isLocationPage && (
+        <Link
+          to="/location"
+          title="Kaha Hai Tu"
+          aria-label="Kaha Hai Tu"
+          style={{
+            pointerEvents: "auto",
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            background: "rgba(11, 12, 21, 0.85)",
+            border: "1.5px solid rgba(5, 217, 232, 0.5)",
+            color: "#05d9e8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textDecoration: "none",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(5,217,232,0.25)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            transition: "transform 0.2s ease, boxShadow 0.2s ease",
+          }}
+        >
+          <MapPin size={20} color="#05d9e8" />
+        </Link>
+      )}
+
+      {!isClubHubPage && (
+        <Link
+          to="/club-hub"
+          title="Club Hub"
+          aria-label="Club Hub"
+          style={{
+            pointerEvents: "auto",
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            background: "rgba(11, 12, 21, 0.85)",
+            border: "1.5px solid rgba(168, 85, 247, 0.5)",
+            color: "#a855f7",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textDecoration: "none",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(168,85,247,0.25)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            transition: "transform 0.2s ease, boxShadow 0.2s ease",
+          }}
+        >
+          <Hexagon size={20} color="#a855f7" />
+        </Link>
       )}
     </div>
   );
